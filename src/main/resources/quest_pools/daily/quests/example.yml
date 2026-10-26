@@ -67,7 +67,7 @@ tasks:
       riding:
         type: whitelist
         value: [ "minecraft:horse" ]
-      # Placeholder checks, every entry must pass
+      # Placeholder checks, every entry must pass. Put all of them under one placeholders: key
       # comparison: ==, ===, >=, <=, <, >, contains, !contains (default ==)
       # contains matches a whole entry of a list placeholder split by separator (default ", ")
       placeholders:
@@ -75,6 +75,11 @@ tasks:
           placeholder: "%potioneffects_list_level%"
           comparison: contains
           value: "Speed II"
+          separator: ", "
+        has-strength:
+          placeholder: "%potioneffects_list_level%"
+          comparison: contains
+          value: "Strength II"
           separator: ", "
       hand:
         # Items that the player must be holding when the action happens
