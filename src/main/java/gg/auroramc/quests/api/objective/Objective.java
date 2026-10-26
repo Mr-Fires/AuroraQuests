@@ -113,11 +113,11 @@ public abstract class Objective extends EventBus {
             if (HookManager.getHook(WorldGuardHook.class).isBlocked(meta.getPlayer(), meta.getLocation())) return false;
         }
 
-        for (var filter : definition.getFilters()) {
+        for (var filter : filters) {
             if (!filter.filter(meta)) return false;
         }
 
-        for (var filter : filters) {
+        for (var filter : definition.getFilters()) {
             if (!filter.filter(meta)) return false;
         }
 
