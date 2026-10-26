@@ -24,7 +24,7 @@ public class Profile {
     private final Map<String, QuestPool> data = new LinkedHashMap<>();
     @Getter(AccessLevel.NONE)
     private volatile Objective tracked;
-    // seed/auto-advance pick is a guess; the first real progress replaces it
+    // set when the plugin picked the task, not the player; the first real progress replaces it
     @Getter(AccessLevel.NONE)
     private volatile boolean trackedSoft;
     @Getter(AccessLevel.NONE)
@@ -91,7 +91,7 @@ public class Profile {
     public Objective getTracked() {
         var cur = tracked;
         if (cur != null && isLive(cur)) return cur;
-        // ponytail: when nothing is left, rescan at most once/sec per player; event-driven invalidation if this shows in profiles
+        // nothing left to track: don't rescan on every placeholder read
         long now = System.currentTimeMillis();
         if (cur == null && now < nextScanAt) return null;
         var next = findNext(cur == null ? null : cur.getQuest().getPool());
