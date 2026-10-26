@@ -32,7 +32,7 @@ public class QuestPool {
             var quest = new Quest(this, questDef, profile.toQuestDataWrapper(getId(), questDef.getId()));
             quests.put(questDef.getId(), quest);
 
-            quest.subscribe(EventType.TASK_PROGRESS, profile::setLastProgressed);
+            quest.subscribe(EventType.TASK_PROGRESS, profile::trackIfIdle);
 
             quest.subscribe(EventType.QUEST_COMPLETED, (t) -> {
                 var currentLevel = getLevel();
