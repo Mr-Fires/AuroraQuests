@@ -82,7 +82,7 @@ public class Profile {
 
     public void trackIfIdle(Objective o) {
         var cur = tracked;
-        if (cur == null || trackedSoft || cur.isCompleted()) {
+        if (cur == null || trackedSoft || !isLive(cur)) {
             tracked = o;
             trackedSoft = false;
         }
@@ -90,7 +90,7 @@ public class Profile {
 
     public Objective getTracked() {
         var cur = tracked;
-        if (cur != null && !cur.isCompleted()) return cur;
+        if (cur != null && isLive(cur)) return cur;
         // ponytail: when nothing is left, rescan at most once/sec per player; event-driven invalidation if this shows in profiles
         long now = System.currentTimeMillis();
         if (cur == null && now < nextScanAt) return null;
@@ -99,6 +99,12 @@ public class Profile {
         trackedSoft = true;
         if (next == null) nextScanAt = now + 1000;
         return next;
+    }
+
+    // a re-roll can drop the tracked quest while it is still incomplete
+    private static boolean isLive(Objective o) {
+        var pool = o.getQuest().getPool();
+        return !o.isCompleted() && (!pool.isTimedRandom() || pool.isRolledQuest(o.getQuest()));
     }
 
     private Objective findNext(QuestPool preferred) {
