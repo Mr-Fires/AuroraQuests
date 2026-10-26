@@ -53,7 +53,7 @@ public class Profile {
             questPool.startQuests();
         }
 
-        tracker.refresh();
+        tracker.reset();
 
         if (!rolledPools.isEmpty() && player.hasPlayedBefore()) {
             var placeholder = Placeholder.of("{pool}", String.join(", ", rolledPools.stream().map(QuestPool::getName).toList()));

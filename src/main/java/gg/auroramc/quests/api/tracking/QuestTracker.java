@@ -44,6 +44,12 @@ public class QuestTracker {
         changeTrackedObjective(findFirstIncompleteObjective(preferredPool), true);
     }
 
+    // the profile was reloaded, so the tracked objective belongs to a destroyed pool
+    public void reset() {
+        trackedObjective = null;
+        refresh();
+    }
+
     private void changeTrackedObjective(@Nullable Objective newObjective, boolean automatic) {
         var previous = trackedObjective;
         if (previous == newObjective) {
