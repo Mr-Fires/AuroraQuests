@@ -6,7 +6,9 @@ import gg.auroramc.aurora.api.user.AuroraUser;
 import gg.auroramc.quests.AuroraQuests;
 import gg.auroramc.quests.api.data.QuestData;
 import gg.auroramc.quests.api.questpool.QuestPool;
+import gg.auroramc.quests.api.objective.Objective;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -19,6 +21,8 @@ public class Profile {
     private final Player player;
 
     private final Map<String, QuestPool> data = new LinkedHashMap<>();
+    @Setter
+    private volatile Objective lastProgressed;
 
     public Profile(AuroraUser user) {
         this.user = user;
@@ -50,6 +54,14 @@ public class Profile {
 
             questPool.startQuests();
         }
+
+        lastProgressed = data.values().stream()
+                .filter(QuestPool::isUnlocked)
+                .flatMap(p -> p.getActiveQuests().stream())
+                .filter(q -> !q.isCompleted())
+                .flatMap(q -> q.getObjectives().stream())
+                .filter(o -> !o.isCompleted())
+                .findFirst().orElse(null);
 
         if (!rolledPools.isEmpty() && player.hasPlayedBefore()) {
             var placeholder = Placeholder.of("{pool}", String.join(", ", rolledPools.stream().map(QuestPool::getName).toList()));
