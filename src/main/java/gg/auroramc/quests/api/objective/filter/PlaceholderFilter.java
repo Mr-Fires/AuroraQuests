@@ -28,7 +28,7 @@ public class PlaceholderFilter implements ObjectiveFilter {
         try {
             return Requirement.isMet(meta.getPlayer(), requirement, List.of());
         } catch (NumberFormatException e) {
-            // Aurora parses numeric operands without catching, and this runs on every event
+            // Requirement throws on a non-numeric placeholder value; count that as not met
             return false;
         }
     }

@@ -146,12 +146,7 @@ public final class InventoryUtils {
         return 0;
     }
 
-    /**
-     * Calculate how many items a click takes out of a result slot (furnace output, smithing result).
-     *
-     * @param event the click on the result slot
-     * @return the amount of items taken
-     */
+    /** How many items a click takes out of a result slot (furnace output, smithing result). */
     public static int calculateResultTakeAmount(final InventoryClickEvent event) {
         final ItemStack result = event.getCurrentItem();
         final PlayerInventory inventory = event.getWhoClicked().getInventory();
