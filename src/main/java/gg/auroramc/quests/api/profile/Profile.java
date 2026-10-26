@@ -7,13 +7,14 @@ import gg.auroramc.quests.AuroraQuests;
 import gg.auroramc.quests.api.data.QuestData;
 import gg.auroramc.quests.api.questpool.QuestPool;
 import gg.auroramc.quests.api.objective.Objective;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 @Getter
 public class Profile {
@@ -21,8 +22,13 @@ public class Profile {
     private final Player player;
 
     private final Map<String, QuestPool> data = new LinkedHashMap<>();
-    @Setter
-    private volatile Objective lastProgressed;
+    @Getter(AccessLevel.NONE)
+    private volatile Objective tracked;
+    // seed/auto-advance pick is a guess; the first real progress replaces it
+    @Getter(AccessLevel.NONE)
+    private volatile boolean trackedSoft;
+    @Getter(AccessLevel.NONE)
+    private volatile long nextScanAt;
 
     public Profile(AuroraUser user) {
         this.user = user;
@@ -55,13 +61,9 @@ public class Profile {
             questPool.startQuests();
         }
 
-        lastProgressed = data.values().stream()
-                .filter(QuestPool::isUnlocked)
-                .flatMap(p -> p.getActiveQuests().stream())
-                .filter(q -> !q.isCompleted())
-                .flatMap(q -> q.getObjectives().stream())
-                .filter(o -> !o.isCompleted())
-                .findFirst().orElse(null);
+        tracked = findNext(null);
+        trackedSoft = true;
+        nextScanAt = 0;
 
         if (!rolledPools.isEmpty() && player.hasPlayedBefore()) {
             var placeholder = Placeholder.of("{pool}", String.join(", ", rolledPools.stream().map(QuestPool::getName).toList()));
@@ -76,6 +78,41 @@ public class Profile {
 
         Bukkit.getAsyncScheduler().runDelayed(AuroraQuests.getInstance(),
                 (t) -> AuroraQuests.getInstance().getPoolManager().getRewardAutoCorrector().correctRewards(player), 50, TimeUnit.MILLISECONDS);
+    }
+
+    public void trackIfIdle(Objective o) {
+        var cur = tracked;
+        if (cur == null || trackedSoft || cur.isCompleted()) {
+            tracked = o;
+            trackedSoft = false;
+        }
+    }
+
+    public Objective getTracked() {
+        var cur = tracked;
+        if (cur != null && !cur.isCompleted()) return cur;
+        // ponytail: when nothing is left, rescan at most once/sec per player; event-driven invalidation if this shows in profiles
+        long now = System.currentTimeMillis();
+        if (cur == null && now < nextScanAt) return null;
+        var next = findNext(cur == null ? null : cur.getQuest().getPool());
+        tracked = next;
+        trackedSoft = true;
+        if (next == null) nextScanAt = now + 1000;
+        return next;
+    }
+
+    private Objective findNext(QuestPool preferred) {
+        var first = preferred != null && preferred.isUnlocked() ? firstOpen(Stream.of(preferred)) : null;
+        return first != null ? first : firstOpen(data.values().stream());
+    }
+
+    private static Objective firstOpen(Stream<QuestPool> pools) {
+        return pools.filter(QuestPool::isUnlocked)
+                .flatMap(p -> p.getActiveQuests().stream())
+                .filter(q -> !q.isCompleted())
+                .flatMap(q -> q.getObjectives().stream())
+                .filter(o -> !o.isCompleted())
+                .findFirst().orElse(null);
     }
 
     public Collection<QuestPool> getQuestPools() {
