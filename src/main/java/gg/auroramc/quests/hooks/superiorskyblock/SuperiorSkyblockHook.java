@@ -4,18 +4,18 @@ import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.events.*;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import gg.auroramc.aurora.api.events.user.AuroraUserLoadedEvent;
+import gg.auroramc.aurora.api.plugin.Hook;
 import gg.auroramc.quests.AuroraQuests;
 import gg.auroramc.quests.api.event.objective.PlayerIslandLevelChangeEvent;
 import gg.auroramc.quests.api.event.objective.PlayerIslandWorthChangeEvent;
 import gg.auroramc.quests.api.event.objective.PlayerJoinIslandEvent;
 import gg.auroramc.quests.api.event.objective.PlayerUpgradeIslandEvent;
-import gg.auroramc.quests.hooks.Hook;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
-public class SuperiorSkyblockHook implements Hook, Listener {
+public class SuperiorSkyblockHook implements Hook<AuroraQuests>, Listener {
     private AuroraQuests plugin;
 
     @Override
@@ -52,7 +52,10 @@ public class SuperiorSkyblockHook implements Hook, Listener {
 
     @EventHandler
     public void onUserLoaded(AuroraUserLoadedEvent event) {
-        Bukkit.getGlobalRegionScheduler().runDelayed(AuroraQuests.getInstance(), (task) -> {
+        var joined = event.getUser().getPlayer();
+        if (joined == null) return;
+        // On the player's own thread, on Folia only that thread may touch them
+        joined.getScheduler().runDelayed(AuroraQuests.getInstance(), (task) -> {
             var player = event.getUser().getPlayer();
             if (player == null || !player.isOnline()) return;
 
@@ -66,7 +69,7 @@ public class SuperiorSkyblockHook implements Hook, Listener {
                 );
                 updateIslandUpgrades(island);
             }
-        }, 100);
+        }, null, 100);
     }
 
     private void updateIslandMembers(double worth, double level, Island island) {

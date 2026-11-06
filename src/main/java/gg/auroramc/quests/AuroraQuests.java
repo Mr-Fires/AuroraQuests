@@ -1,11 +1,11 @@
 package gg.auroramc.quests;
 
-import gg.auroramc.aurora.Aurora;
 import gg.auroramc.aurora.api.AuroraAPI;
 import gg.auroramc.aurora.api.AuroraLogger;
 import gg.auroramc.aurora.api.command.CommandDispatcher;
 import gg.auroramc.aurora.api.events.user.AuroraUserLoadedEvent;
 import gg.auroramc.aurora.api.localization.LocalizationProvider;
+import gg.auroramc.aurora.api.plugin.Hooks;
 import gg.auroramc.aurora.api.user.AuroraUser;
 import gg.auroramc.aurora.api.util.Version;
 import gg.auroramc.quests.api.AuroraQuestsPlugin;
@@ -19,7 +19,25 @@ import gg.auroramc.quests.api.questpool.Pool;
 import gg.auroramc.quests.api.questpool.PoolManager;
 import gg.auroramc.quests.command.CommandManager;
 import gg.auroramc.quests.config.ConfigManager;
-import gg.auroramc.quests.hooks.HookManager;
+import gg.auroramc.quests.hooks.adyeshach.AdyeshachHook;
+import gg.auroramc.quests.hooks.auraskills.AuraSkillsHook;
+import gg.auroramc.quests.hooks.auroralevels.AuroraLevelsHook;
+import gg.auroramc.quests.hooks.citizens.CitizensHook;
+import gg.auroramc.quests.hooks.customfishing.CustomFishingHook;
+import gg.auroramc.quests.hooks.economyshopgui.EconomyShopGuiHook;
+import gg.auroramc.quests.hooks.excellentshop.ExcellentShopHook;
+import gg.auroramc.quests.hooks.fancynpcs.FancyNPCsHook;
+import gg.auroramc.quests.hooks.luckperms.LuckPermsHook;
+import gg.auroramc.quests.hooks.mmolib.MMOLibHook;
+import gg.auroramc.quests.hooks.mythicdungeons.DungeonsHook;
+import gg.auroramc.quests.hooks.mythicmobs.MythicHook;
+import gg.auroramc.quests.hooks.nexo.NexoHook;
+import gg.auroramc.quests.hooks.shopguiplus.ShopGUIPlusHook;
+import gg.auroramc.quests.hooks.shopkeepers.ShopkeepersHook;
+import gg.auroramc.quests.hooks.superiorskyblock.SuperiorSkyblockHook;
+import gg.auroramc.quests.hooks.worldguard.WorldGuardHook;
+import gg.auroramc.quests.hooks.znpcs.ZnpcsHook;
+import gg.auroramc.quests.hooks.znpcsplus.ZnpcPlusHook;
 import gg.auroramc.quests.menu.PoolMenu;
 import gg.auroramc.quests.objective.*;
 import gg.auroramc.quests.parser.PoolParser;
@@ -58,12 +76,22 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
     @Getter
     private LocalizationProvider localizationProvider;
     private CommandManager commandManager;
+    // Created in onLoad, after checking that Aurora is new enough (an older one doesn't have Hooks)
+    @Getter
+    private Hooks<AuroraQuests> hooks;
     private ScheduledTask unlockTask;
 
     private BukkitEventBus bukkitEventBus;
 
+    // Set when Aurora is too old for this version, nothing else is done then
+    private boolean incompatible = false;
+
     @Override
     public void onLoad() {
+        if (!auroraIsCompatible()) {
+            incompatible = true;
+            return;
+        }
         instance = this;
         AuroraQuestsPlugin.instance = this;
         configManager = new ConfigManager(this);
@@ -90,15 +118,39 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
             );
         }
 
-        HookManager.loadHooks(this);
+        hooks = new Hooks<>(this)
+                .add(AuroraLevelsHook.class, "AuroraLevels")
+                .add(AuraSkillsHook.class, "AuraSkills")
+                .add(CustomFishingHook.class, "CustomFishing")
+                .add(MythicHook.class, "MythicMobs")
+                .add(DungeonsHook.class, "MythicDungeons")
+                .add(WorldGuardHook.class, "WorldGuard")
+                .add(CitizensHook.class, "Citizens")
+                .add(ShopkeepersHook.class, "Shopkeepers")
+                .add(MMOLibHook.class, "MythicLib")
+                .add(ShopGUIPlusHook.class, "ShopGUIPlus")
+                .add(EconomyShopGuiHook.class, "EconomyShopGUI", "EconomyShopGUI-Premium")
+                .add(LuckPermsHook.class, "LuckPerms")
+                .add(AdyeshachHook.class, "Adyeshach")
+                .add(SuperiorSkyblockHook.class, "SuperiorSkyblock2")
+                .add(FancyNPCsHook.class, "FancyNpcs")
+                .add(ZnpcsHook.class, "ServersNPC")
+                .add(ExcellentShopHook.class, "ExcellentShop")
+                .add(NexoHook.class, "Nexo")
+                .add(ZnpcPlusHook.class, "ZNPCsPlus");
+        hooks.load();
     }
 
     @Override
     public void onEnable() {
-        localizationProvider = new LocalizationProvider(Aurora.getLanguageProvider(), configManager.getConfig().getPerPlayerLocale());
+        if (incompatible) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        localizationProvider = new LocalizationProvider(AuroraAPI.getLanguageProvider(), configManager.getConfig().getPerPlayerLocale());
 
-        for (var msg : configManager.getMessageConfigs().entrySet()) {
-            localizationProvider.setLocaleValues(msg.getKey(), msg.getValue().toFlatMap());
+        for (var locale : configManager.getMessages().getLocales()) {
+            localizationProvider.setLocaleValues(locale, configManager.getMessages().toFlatMap(locale));
         }
 
         AuroraAPI.getUserManager().registerUserDataHolder(QuestData.class);
@@ -108,7 +160,7 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
         commandManager = new CommandManager(this);
         commandManager.reload();
 
-        HookManager.enableHooks(this);
+        hooks.enable();
 
         var pools = new ArrayList<Pool>();
 
@@ -119,7 +171,6 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
         poolManager.reload(pools);
         loaded = true;
         loadPlayers();
-
 
         Bukkit.getGlobalRegionScheduler().run(this, (task) -> {
             reloadUnlockTask();
@@ -159,8 +210,8 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
 
         localizationProvider.clear();
         
-        for (var msg : configManager.getMessageConfigs().entrySet()) {
-            localizationProvider.setLocaleValues(msg.getKey(), msg.getValue().toFlatMap());
+        for (var locale : configManager.getMessages().getLocales()) {
+            localizationProvider.setLocaleValues(locale, configManager.getMessages().toFlatMap(locale));
         }
 
         commandManager.reload();
@@ -179,7 +230,8 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        commandManager.unregisterCommands();
+        if (incompatible) return;
+        if (commandManager != null) commandManager.unregisterCommands();
 
         try {
             l.info("Shutting down scheduler...");
@@ -191,6 +243,22 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
         if (unlockTask != null && !unlockTask.isCancelled()) {
             unlockTask.cancel();
         }
+    }
+
+    // Built for Aurora 3: with an older one, say so clearly instead of failing somewhere deep inside. Only Bukkit is
+    // used here, an older Aurora doesn't have what this version needs.
+    private boolean auroraIsCompatible() {
+        var aurora = Bukkit.getPluginManager().getPlugin("Aurora");
+        var version = aurora == null ? "none" : aurora.getPluginMeta().getVersion();
+        int major;
+        try {
+            major = Integer.parseInt(version.split("[.-]")[0]);
+        } catch (NumberFormatException e) {
+            major = 0;
+        }
+        if (major >= 3) return true;
+        getLogger().severe(getName() + " " + getPluginMeta().getVersion() + " needs Aurora 3.0 or newer, but Aurora " + version + " is installed. Update Aurora.");
+        return false;
     }
 
     private void registerObjectives() {
@@ -255,7 +323,6 @@ public class AuroraQuests extends AuroraQuestsPlugin implements Listener {
         ObjectiveFactory.registerObjective(ObjectiveType.RESURRECT, ResurrectObjective.class);
         ObjectiveFactory.registerObjective(ObjectiveType.SMITH, SmithObjective.class);
         ObjectiveFactory.registerObjective(ObjectiveType.TRADE, TradeObjective.class);
-
     }
 
     private void reloadUnlockTask() {

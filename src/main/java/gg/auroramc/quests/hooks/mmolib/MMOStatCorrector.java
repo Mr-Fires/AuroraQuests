@@ -2,6 +2,7 @@ package gg.auroramc.quests.hooks.mmolib;
 
 import com.google.common.collect.Maps;
 import gg.auroramc.aurora.api.reward.RewardCorrector;
+import gg.auroramc.aurora.api.reward.integration.MMOStatReward;
 import gg.auroramc.aurora.api.util.NamespacedId;
 import gg.auroramc.quests.AuroraQuests;
 import io.lumine.mythic.lib.api.player.EquipmentSlot;
@@ -10,7 +11,6 @@ import io.lumine.mythic.lib.api.stat.StatMap;
 import io.lumine.mythic.lib.api.stat.modifier.StatModifier;
 import io.lumine.mythic.lib.player.modifier.ModifierSource;
 import io.lumine.mythic.lib.player.modifier.ModifierType;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -40,7 +40,7 @@ public class MMOStatCorrector implements RewardCorrector {
 
                     for (var reward : quest.getDefinition().getRewards().values()) {
                         if (reward instanceof MMOStatReward statReward && statReward.isValid()) {
-                            var key = NamespacedId.of(MMOStatReward.getMMO_STAT(), statReward.getStat()).toString();
+                            var key = NamespacedId.of(MMOLibHook.KEY, statReward.getStat()).toString();
                             var current = statReward.getCurrentModifier(key, stats);
                             UUID uuid = current != null ? current.getUniqueId() : UUID.randomUUID();
                             statMap.merge(statReward.getStat(),
@@ -51,7 +51,6 @@ public class MMOStatCorrector implements RewardCorrector {
                 }
             }
 
-
             if (!pool.hasLeveling()) continue;
             var level = pool.getLevel();
 
@@ -61,7 +60,7 @@ public class MMOStatCorrector implements RewardCorrector {
                 var placeholders = pool.getLevelPlaceholders(i);
                 for (var reward : matcher.computeRewards(i)) {
                     if (reward instanceof MMOStatReward statReward && statReward.isValid()) {
-                        var key = NamespacedId.of(MMOStatReward.getMMO_STAT(), statReward.getStat()).toString();
+                        var key = NamespacedId.of(MMOLibHook.KEY, statReward.getStat()).toString();
                         var current = statReward.getCurrentModifier(key, stats);
                         UUID uuid = current != null ? current.getUniqueId() : UUID.randomUUID();
                         statMap.merge(statReward.getStat(),
@@ -72,7 +71,8 @@ public class MMOStatCorrector implements RewardCorrector {
             }
         }
 
-        Bukkit.getGlobalRegionScheduler().runDelayed(plugin, (task) -> {
+        // On the player's own thread, on Folia only that thread may touch them
+        player.getScheduler().runDelayed(plugin, (task) -> {
             for (var entry : statMap.entrySet()) {
                 var statType = entry.getKey();
                 var s = entry.getValue();
@@ -80,7 +80,7 @@ public class MMOStatCorrector implements RewardCorrector {
                 new StatModifier(s.uuid, s.key, statType, s.value, s.modifierType, EquipmentSlot.OTHER, ModifierSource.OTHER)
                         .register(playerData);
             }
-        }, 3);
+        }, null, 3);
     }
 
     public record MMOStat(ModifierType modifierType, double value, String key, UUID uuid) {
