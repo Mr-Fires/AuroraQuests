@@ -58,7 +58,7 @@ public class MainMenu {
         var maybeInt = pools.stream()
                 .filter(pool -> pool.getDefinition().getMenuItem().getShowInMainMenu())
                 .filter(pool -> pool.isUnlocked() || pool.getDefinition().getRequirement().isAlwaysShowInMenu())
-                .mapToInt(pool -> pool.getDefinition().getMenuItem().getPage()).max();
+                .mapToInt(pool -> pool.getDefinition().getMenuItem().lastPage()).max();
 
         if (maybeInt.isPresent()) {
             maxPage = maybeInt.getAsInt();
@@ -72,7 +72,7 @@ public class MainMenu {
             if (!pool.isUnlocked() && !pool.getDefinition().getRequirement().isAlwaysShowInMenu()) continue;
             var mi = pool.getDefinition().getMenuItem();
             if (!mi.getShowInMainMenu()) continue;
-            if (mi.getPage() != page) continue;
+            if (!mi.onPage(page)) continue;
 
             var boardName = "quests_" + pool.getId();
 

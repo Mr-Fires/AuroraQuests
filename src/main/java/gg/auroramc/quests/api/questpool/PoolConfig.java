@@ -13,9 +13,11 @@ import lombok.Setter;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Getter
 public class PoolConfig {
@@ -42,8 +44,18 @@ public class PoolConfig {
     public static class PoolMenuItem {
         private Boolean showInMainMenu;
         private Integer page;
+        private List<Integer> pages;
         private ItemConfig item;
         private List<String> lockedLore;
+
+        public boolean onPage(int p) {
+            return Objects.equals(page, p) || (pages != null && pages.contains(p));
+        }
+
+        public int lastPage() {
+            int last = page == null ? 1 : page;
+            return pages == null || pages.isEmpty() ? last : Math.max(last, Collections.max(pages));
+        }
     }
 
     @Getter
