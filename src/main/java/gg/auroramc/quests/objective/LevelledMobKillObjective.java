@@ -5,6 +5,7 @@ import gg.auroramc.aurora.api.AuroraAPI;
 import gg.auroramc.quests.api.event.objective.PlayerKillMobEvent;
 import gg.auroramc.quests.api.objective.ObjectiveDefinition;
 import gg.auroramc.quests.api.objective.TypedObjective;
+import gg.auroramc.quests.api.objective.filter.HandItemFilter;
 import gg.auroramc.quests.api.objective.filter.ObjectiveFilter;
 import gg.auroramc.quests.api.objective.filter.RangeFilter;
 import gg.auroramc.quests.api.profile.Profile;
@@ -44,7 +45,8 @@ public class LevelledMobKillObjective extends TypedObjective {
 
         var level = getMobLevel(entity);
         if (level != null) {
-            progress(1, RangeFilter.with(meta(id), "level", level));
+            var killMeta = HandItemFilter.with(meta(id), event.getDamageSource());
+            progress(1, RangeFilter.with(killMeta, "level", level));
         }
     }
 

@@ -5,6 +5,7 @@ import gg.auroramc.aurora.api.item.TypeId;
 import gg.auroramc.quests.api.event.objective.PlayerKillMobEvent;
 import gg.auroramc.quests.api.objective.ObjectiveDefinition;
 import gg.auroramc.quests.api.objective.TypedObjective;
+import gg.auroramc.quests.api.objective.filter.HandItemFilter;
 import gg.auroramc.quests.api.profile.Profile;
 import gg.auroramc.quests.api.quest.Quest;
 import org.bukkit.entity.Creeper;
@@ -39,7 +40,7 @@ public class MobKillObjective extends TypedObjective {
         // Only quests that list charged_creeper see it; others keep seeing plain creeper
         if (tracksCharged && id.namespace().equals("minecraft") && entity instanceof Creeper c && c.isPowered()) id = CHARGED_CREEPER;
 
-        progress(1, meta(id));
+        progress(1, HandItemFilter.with(meta(id), event.getDamageSource()));
     }
 
     public void onCustomMobKill(PlayerKillMobEvent event) {
