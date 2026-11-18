@@ -30,9 +30,11 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
             return objective != null ? objective.display() : "";
         }
         if (args.length < 2) return null;
+        var full = String.join("_", args);
+        var questTotal = resolveQuestTotal(full);
+        if (questTotal != null) return questTotal;
         var profile = AuroraQuests.getInstance().getProfileManager().getProfile(player);
         if(profile == null) return "";
-        var full = String.join("_", args);
 
         if (full.endsWith("total_completed_raw")) {
             var sum = profile.getQuestPools().stream().mapToLong(QuestPool::getCompletedQuestCount).sum();
@@ -83,11 +85,28 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
         return null;
     }
 
+    private String resolveQuestTotal(String placeholder) {
+        for (var pool : AuroraQuests.getInstance().getPoolManager().getPools()) {
+            var definition = pool.getDefinition();
+            var prefix = definition.getId() + "_quest_total";
+            if (placeholder.equals(prefix)) {
+                return AuroraAPI.formatNumber(definition.getQuests().size());
+            }
+            if (placeholder.startsWith(prefix + "_")) {
+                var difficultyId = placeholder.substring(prefix.length() + 1);
+                if (!AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().containsKey(difficultyId)) return null;
+                return AuroraAPI.formatNumber(definition.countQuestsWithDifficulty(difficultyId));
+            }
+        }
+        return null;
+    }
+
     @Override
     public List<String> getPatterns() {
         var manager = AuroraQuests.getInstance().getPoolManager();
+        var difficultyIds = AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().keySet();
 
-        var list = new ArrayList<String>(manager.getPoolIds().size() * 7 + 4);
+        var list = new ArrayList<String>(manager.getPoolIds().size() * (10 + difficultyIds.size()) + 4);
 
         list.add("tracked");
         list.add("tracking");
@@ -104,6 +123,10 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
             list.add(pool + "_current_completed");
             list.add(pool + "_countdown");
             list.add(pool + "_countdown_long");
+            list.add(pool + "_quest_total");
+            for (var difficultyId : difficultyIds) {
+                list.add(pool + "_quest_total_" + difficultyId);
+            }
         }
 
         return list;
