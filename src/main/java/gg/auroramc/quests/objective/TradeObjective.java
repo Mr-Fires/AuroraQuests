@@ -13,10 +13,7 @@ import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Villager;
 import org.bukkit.event.EventPriority;
 
-import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class TradeObjective extends TypedObjective {
     private final Set<String> villagerTypes;
@@ -24,14 +21,8 @@ public class TradeObjective extends TypedObjective {
 
     public TradeObjective(Quest quest, ObjectiveDefinition definition, Profile.TaskDataWrapper data) {
         super(quest, definition, data);
-        this.villagerTypes = normalize(definition.getArgs().getStringList("villager-types"));
-        this.professions = normalize(definition.getArgs().getStringList("professions"));
-    }
-
-    static Set<String> normalize(List<String> names) {
-        return names.stream()
-                .map(name -> name.toLowerCase(Locale.ROOT).replaceFirst("^minecraft:", ""))
-                .collect(Collectors.toSet());
+        this.villagerTypes = normalizeKeys(definition.getArgs().getStringList("villager-types"));
+        this.professions = normalizeKeys(definition.getArgs().getStringList("professions"));
     }
 
     @Override

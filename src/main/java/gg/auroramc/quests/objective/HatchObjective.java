@@ -8,11 +8,17 @@ import gg.auroramc.quests.api.profile.Profile;
 import gg.auroramc.quests.api.quest.Quest;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerEggThrowEvent;
 
 import java.util.Set;
@@ -29,7 +35,7 @@ public class HatchObjective extends TypedObjective {
         super(quest, definition, data);
         tracksSniffer = definition.getArgs().getStringList("types").stream()
                 .map(TypeId::fromString).anyMatch(SNIFFER::equals);
-        eggs = TradeObjective.normalize(definition.getArgs().getStringList("eggs"));
+        eggs = normalizeKeys(definition.getArgs().getStringList("eggs"));
     }
 
     @Override
@@ -44,6 +50,11 @@ public class HatchObjective extends TypedObjective {
         if (!tracksSniffer) return;
         onEvent(BlockPlaceEvent.class, this::onSnifferEggPlace, EventPriority.MONITOR);
         onEvent(BlockBreakEvent.class, this::onSnifferEggBreak, EventPriority.MONITOR);
+        onEvent(EntityExplodeEvent.class, this::onEntityExplode, EventPriority.MONITOR);
+        onEvent(BlockExplodeEvent.class, this::onBlockExplode, EventPriority.MONITOR);
+        onEvent(BlockPistonExtendEvent.class, this::onPistonExtend, EventPriority.MONITOR);
+        onEvent(BlockPistonRetractEvent.class, this::onPistonRetract, EventPriority.MONITOR);
+        onEvent(EntityChangeBlockEvent.class, this::onEntityChangeBlock, EventPriority.MONITOR);
         onEvent(CreatureSpawnEvent.class, this::onSnifferHatch, EventPriority.MONITOR);
     }
 
@@ -65,8 +76,32 @@ public class HatchObjective extends TypedObjective {
     }
 
     public void onSnifferEggBreak(BlockBreakEvent event) {
-        if (event.getBlock().getType() != Material.SNIFFER_EGG) return;
-        placedSnifferEggs.remove(event.getBlock().getLocation());
+        forgetSnifferEgg(event.getBlock());
+    }
+
+    public void onEntityExplode(EntityExplodeEvent event) {
+        event.blockList().forEach(this::forgetSnifferEgg);
+    }
+
+    public void onBlockExplode(BlockExplodeEvent event) {
+        event.blockList().forEach(this::forgetSnifferEgg);
+    }
+
+    // A pushed egg hatches somewhere else, so its placer forfeits the credit
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        event.getBlocks().forEach(this::forgetSnifferEgg);
+    }
+
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        event.getBlocks().forEach(this::forgetSnifferEgg);
+    }
+
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        forgetSnifferEgg(event.getBlock());
+    }
+
+    private void forgetSnifferEgg(Block block) {
+        if (block.getType() == Material.SNIFFER_EGG) placedSnifferEggs.remove(block.getLocation());
     }
 
     public void onSnifferHatch(CreatureSpawnEvent event) {

@@ -21,8 +21,11 @@ import org.bukkit.event.player.PlayerEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Getter
 public abstract class Objective extends EventBus {
@@ -102,6 +105,12 @@ public abstract class Objective extends EventBus {
         }, delay * 50L, interval * 50L, TimeUnit.MILLISECONDS);
 
         tasks.add(task);
+    }
+
+    protected static Set<String> normalizeKeys(List<String> names) {
+        return names.stream()
+                .map(name -> name.toLowerCase(Locale.ROOT).replaceFirst("^minecraft:", ""))
+                .collect(Collectors.toSet());
     }
 
     protected boolean passesFilters(ObjectiveMeta meta) {
