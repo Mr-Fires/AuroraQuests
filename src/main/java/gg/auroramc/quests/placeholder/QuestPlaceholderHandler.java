@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class QuestPlaceholderHandler implements PlaceholderHandler {
+    private static final String QUEST_TOTAL_MARKER = "_quest_total";
+
     @Override
     public String getIdentifier() {
         return "quests";
@@ -86,19 +88,19 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
     }
 
     private String resolveQuestTotal(String placeholder) {
-        for (var pool : AuroraQuests.getInstance().getPoolManager().getPools()) {
-            var definition = pool.getDefinition();
-            var prefix = definition.getId() + "_quest_total";
-            if (placeholder.equals(prefix)) {
-                return AuroraAPI.formatNumber(definition.getQuests().size());
-            }
-            if (placeholder.startsWith(prefix + "_")) {
-                var difficultyId = placeholder.substring(prefix.length() + 1);
-                if (!AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().containsKey(difficultyId)) return null;
-                return AuroraAPI.formatNumber(definition.countQuestsWithDifficulty(difficultyId));
-            }
-        }
-        return null;
+        var markerIndex = placeholder.indexOf(QUEST_TOTAL_MARKER);
+        if (markerIndex < 1) return null;
+        var pool = AuroraQuests.getInstance().getPoolManager().getPool(placeholder.substring(0, markerIndex));
+        if (pool == null) return null;
+
+        var definition = pool.getDefinition();
+        var suffix = placeholder.substring(markerIndex + QUEST_TOTAL_MARKER.length());
+        if (suffix.isEmpty()) return AuroraAPI.formatNumber(definition.getQuests().size());
+        if (!suffix.startsWith("_")) return null;
+
+        var difficultyId = suffix.substring(1);
+        if (!AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().containsKey(difficultyId)) return null;
+        return AuroraAPI.formatNumber(definition.countQuestsWithDifficulty(difficultyId));
     }
 
     @Override
