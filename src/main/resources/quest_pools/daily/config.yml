@@ -22,6 +22,7 @@ completed-quests:
 menu-item:
   show-in-main-menu: true
   page: 1
+  # pages: [2, 3] # optional, show the same item on more pages
   locked-lore:
     - ""
     - "&cThis quest pool is locked!"
