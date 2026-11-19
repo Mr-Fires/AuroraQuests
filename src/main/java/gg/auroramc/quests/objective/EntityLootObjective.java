@@ -4,6 +4,7 @@ import gg.auroramc.aurora.api.AuroraAPI;
 import gg.auroramc.quests.api.event.objective.PlayerLootEvent;
 import gg.auroramc.quests.api.objective.ObjectiveDefinition;
 import gg.auroramc.quests.api.objective.TypedObjective;
+import gg.auroramc.quests.api.objective.filter.HandItemFilter;
 import gg.auroramc.quests.api.profile.Profile;
 import gg.auroramc.quests.api.quest.Quest;
 import org.bukkit.entity.LivingEntity;
@@ -33,7 +34,7 @@ public class EntityLootObjective extends TypedObjective {
 
         for (var drop : event.getDrops()) {
             var typeId = AuroraAPI.getItemManager().resolveId(drop);
-            progress(drop.getAmount(), meta(typeId));
+            progress(drop.getAmount(), HandItemFilter.with(meta(typeId), event.getDamageSource()));
         }
     }
 
