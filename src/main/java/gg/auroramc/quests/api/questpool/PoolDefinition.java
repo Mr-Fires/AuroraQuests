@@ -28,4 +28,10 @@ public class PoolDefinition {
     public boolean isResetFrequencyValid() {
         return resetFrequency != null && resetFrequency.split("\\s").length == 6;
     }
+
+    public long countQuestsWithDifficulty(String difficultyId) {
+        return quests.values().stream()
+                .filter(quest -> difficultyId.equals(quest.getDifficulty()))
+                .count();
+    }
 }

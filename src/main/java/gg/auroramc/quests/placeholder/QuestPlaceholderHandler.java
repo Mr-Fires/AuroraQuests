@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class QuestPlaceholderHandler implements PlaceholderHandler {
+    private static final String QUEST_TOTAL_MARKER = "_quest_total";
+
     @Override
     public String getIdentifier() {
         return "quests";
@@ -30,9 +32,11 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
             return objective != null ? objective.display() : "";
         }
         if (args.length < 2) return null;
+        var full = String.join("_", args);
+        var questTotal = resolveQuestTotal(full);
+        if (questTotal != null) return questTotal;
         var profile = AuroraQuests.getInstance().getProfileManager().getProfile(player);
         if(profile == null) return "";
-        var full = String.join("_", args);
 
         if (full.endsWith("total_completed_raw")) {
             var sum = profile.getQuestPools().stream().mapToLong(QuestPool::getCompletedQuestCount).sum();
@@ -83,11 +87,28 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
         return null;
     }
 
+    private String resolveQuestTotal(String placeholder) {
+        var markerIndex = placeholder.indexOf(QUEST_TOTAL_MARKER);
+        if (markerIndex < 1) return null;
+        var pool = AuroraQuests.getInstance().getPoolManager().getPool(placeholder.substring(0, markerIndex));
+        if (pool == null) return null;
+
+        var definition = pool.getDefinition();
+        var suffix = placeholder.substring(markerIndex + QUEST_TOTAL_MARKER.length());
+        if (suffix.isEmpty()) return AuroraAPI.formatNumber(definition.getQuests().size());
+        if (!suffix.startsWith("_")) return null;
+
+        var difficultyId = suffix.substring(1);
+        if (!AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().containsKey(difficultyId)) return null;
+        return AuroraAPI.formatNumber(definition.countQuestsWithDifficulty(difficultyId));
+    }
+
     @Override
     public List<String> getPatterns() {
         var manager = AuroraQuests.getInstance().getPoolManager();
+        var difficultyIds = AuroraQuests.getInstance().getConfigManager().getConfig().getDifficulties().keySet();
 
-        var list = new ArrayList<String>(manager.getPoolIds().size() * 7 + 4);
+        var list = new ArrayList<String>(manager.getPoolIds().size() * (10 + difficultyIds.size()) + 4);
 
         list.add("tracked");
         list.add("tracking");
@@ -104,6 +125,10 @@ public class QuestPlaceholderHandler implements PlaceholderHandler {
             list.add(pool + "_current_completed");
             list.add(pool + "_countdown");
             list.add(pool + "_countdown_long");
+            list.add(pool + "_quest_total");
+            for (var difficultyId : difficultyIds) {
+                list.add(pool + "_quest_total_" + difficultyId);
+            }
         }
 
         return list;
