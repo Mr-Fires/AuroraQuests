@@ -8,6 +8,7 @@ import gg.auroramc.aurora.api.config.premade.ItemConfig;
 import gg.auroramc.quests.config.MainMenuConfig;
 import gg.auroramc.quests.config.quest.QuestConfig;
 import gg.auroramc.quests.config.quest.StartRequirementConfig;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -41,6 +42,7 @@ public class PoolConfig {
     private String id;
 
     @Getter
+    @Setter(AccessLevel.PACKAGE)
     public static class PoolMenuItem {
         private Boolean showInMainMenu;
         private Integer page;
