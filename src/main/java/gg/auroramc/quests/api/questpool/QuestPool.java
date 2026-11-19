@@ -34,7 +34,10 @@ public class QuestPool {
 
             quest.subscribe(EventType.TASK_PROGRESS, profile.getTracker()::onObjectiveProgress);
 
-            quest.subscribe(EventType.TASK_COMPLETED, objective -> profile.getTracker().refresh());
+            quest.subscribe(EventType.TASK_COMPLETED, objective -> {
+                // last task: QUEST_COMPLETED refreshes once the next quest has unlocked
+                if (quest.getObjectives().stream().anyMatch(task -> !task.isCompleted())) profile.getTracker().refresh();
+            });
 
             quest.subscribe(EventType.QUEST_COMPLETED, triggerObjective -> {
                 var currentLevel = getLevel();
